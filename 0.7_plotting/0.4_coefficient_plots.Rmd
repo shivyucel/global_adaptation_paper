@@ -1,0 +1,784 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(broom)
+library(tidyverse)
+library(ggpubr)
+library(circlize)
+library(tidyverse)
+library(sf)
+library(sjPlot)
+library(sjmisc)
+library(stargazer)
+library(lme4)
+library(lmerTest)
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+library(ggeffects)
+library(performance)
+library(R2MLwiN)
+library(lmtest)
+```
+
+```{r}
+
+regression <- st_read('data/china_coefs.csv')
+regression$coef <- as.numeric(regression$coef)
+regression$ci <- as.numeric(regression$ci)
+
+regression$p <- factor(regression$p)
+regression$variable <- as.character(regression$variable)
+regression$variable <- factor(regression$variable, levels=c('Elev > 1500m','Coast','Over 60','HDI', 'Popdens.', 'Weekend', 'Stage', 'Heatwave Dur.', 'Precip. Control', 'Precip. Heat', 'Temp Diff.', 'HI Temp', 'Intercept'))
+
+regression$p <- factor(regression$p, levels=c('p<0.05','p>=0.05'))
+
+
+p2 <- ggplot(regression, aes(x=coef, y=variable, alpha=p, color=c)) + 
+  geom_point(size=1) + 
+  labs(x="Coef. (intra-city activity % change)", y = "Variable", alpha="Significance: ") + 
+  ggtitle("China multi-level model results") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  geom_errorbarh(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2, height=0) + # Add error bars
+  scale_alpha_discrete(range = c(1, 0.25)) + 
+  scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+
+  guides(color=FALSE, fill=FALSE)+
+  theme_bw()+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+ggsave('/Users/shivyucel/Documents/projects/DPhil/Code_Data/paper2_repo/__clean/0.6_modelling/figs/china_modelling.pdf', width=7, height=5)
+
+p2
+```
+
+
+```{r}
+mob_vars
+```
+
+
+```{r}
+
+mob_vars_full <- st_read("data/climate_temporal_coefs copy.csv")
+#mob_vars <- mob_vars %>% 
+#  mutate(response = fct_reorder(variable, variable, min)) %>%   arrange(response)
+
+mob_vars_full$variable <- as.factor(mob_vars_full$variable)
+mob_vars_full$response <- as.factor(mob_vars_full$Response)
+mob_vars_full$country <- as.factor(mob_vars_full$country)
+
+mob_vars_full$coefficient <- as.numeric(mob_vars_full$coefficient)
+mob_vars_full$ci <- as.numeric(mob_vars_full$ci)
+mob_vars_full$response <- factor(mob_vars_full$response, levels=c('parks','retail_recreation','grocery_pharmacy','transit', 'workplace', 'residence'))
+
+
+```
+
+
+
+```{r}
+           
+pd <- position_dodge(width = 1)
+
+
+mob_vars <- filter(mob_vars_full, (variable == 'Heatwave Dur.' | variable == 'Stage frac.' | variable == 'Weekend'))
+
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+france_df <- filter(mob_vars, country=='France')
+
+
+p1_temp <- ggplot(france_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="France", alpha='p-value') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+
+india_df <- filter(mob_vars, country=='India')
+
+
+p2_temp <- ggplot(india_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="India", alpha='p-value') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+us_df <- filter(mob_vars, country=='United States')
+
+p3_temp <- ggplot(us_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="United States", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+turkey_df <- filter(mob_vars, country=='Turkey')
+
+p4_temp <-ggplot(turkey_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Turkey", alpha='p-value') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+nigeria_df <- filter(mob_vars, country=='Nigeria')
+
+p5_temp <- ggplot(nigeria_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Nigeria", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+brazil_df <- filter(mob_vars, country=='Brazil')
+
+p6_temp <- ggplot(brazil_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Brazil", alpha='p-value') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+```
+
+
+```{r}
+temp_plot <- ggarrange(p1_temp, p2_temp,p3_temp,p4_temp,p5_temp,p6_temp, common.legend=TRUE,ncol=3, nrow=2, labels = c("A","B","C", "D", "E", "F"), hjust=c(-5))
+ggexport(plotlist = list(temp_plot), filename = "temporal_plot.pdf",  width=9, height=9)
+temp_plot
+```
+
+```{r}
+mob_vars <- filter(mob_vars_full, (variable == 'Temp diff.' | variable == 'Rain Heat' | variable == 'Rain Control'))
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+france_df <- filter(mob_vars, country=='France')
+
+
+p1_temp <- ggplot(france_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response", alpha='p-value')  + 
+  ggtitle("France") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+india_df <- filter(mob_vars, country=='India')
+
+
+p2_temp <- ggplot(india_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response", alpha='p-value') + 
+  ggtitle("India") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+india_df <- filter(mob_vars, country=='India')
+
+us_df <- filter(mob_vars, country=='United States')
+
+p3_temp <- ggplot(us_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response", alpha='p-value')  + 
+  ggtitle("United States") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+turkey_df <- filter(mob_vars, country=='Turkey')
+
+p4_temp <- ggplot(turkey_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response", alpha='p-value')  + 
+  ggtitle("Turkey") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+nigeria_df <- filter(mob_vars, country=='Nigeria')
+
+p5_temp <- ggplot(nigeria_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response") + 
+  ggtitle("Nigeria") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+brazil_df <- filter(mob_vars, country=='Brazil')
+
+p6_temp <- ggplot(brazil_df, aes(x=coefficient, y=variable, color=response)) + 
+  geom_point(size=1.5,  position = position_dodge2(width = 0.8, reverse = TRUE), alpha=0.8) + 
+  labs(y = "Variable", x="Coef.", alpha="Significance: ", color="Response") + 
+  ggtitle("Brazil") +
+  geom_vline(aes(xintercept=0), linetype="dashed", size=0.5) + 
+  geom_hline(yintercept = (0:7)+0.5) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #geom_bar(stat="identity",width=0.05, size=0, aes(alpha=p, fill=c,colour=NA,size=0)) +
+  #geom_errorbar(aes(xmin = coef - ci, xmax = coef + ci), width = 0.2) + # Add error bars
+  #scale_alpha_discrete(range = c(1, 0.25)) + 
+  #scale_fill_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  #scale_color_manual(values = c('green' = 'darkgreen', 'red' = 'red')) +
+  scale_color_brewer(palette = "Dark2") +
+
+  #guides(color=FALSE, fill=FALSE)+
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  #theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+```
+
+```{r}
+pd <- position_dodge(width = 1)
+
+
+mob_vars <- filter(mob_vars_full, (variable == 'Temp diff.' | variable == 'Rain Heat' | variable == 'Rain Control'))
+
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+france_df <- filter(mob_vars, country=='France')
+
+
+p1_temp <- ggplot(france_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="France", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+
+india_df <- filter(mob_vars, country=='India')
+
+
+p2_temp <- ggplot(india_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="India", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+us_df <- filter(mob_vars, country=='United States')
+
+p3_temp <- ggplot(us_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="United States", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+turkey_df <- filter(mob_vars, country=='Turkey')
+
+p4_temp <-ggplot(turkey_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Turkey", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+nigeria_df <- filter(mob_vars, country=='Nigeria')
+
+p5_temp <- ggplot(nigeria_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Nigeria", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+brazil_df <- filter(mob_vars, country=='Brazil')
+
+p6_temp <- ggplot(brazil_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Brazil", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+```
+
+```{r}
+temp_plot <- ggarrange(p1_temp, p2_temp,p3_temp,p4_temp,p5_temp,p6_temp, common.legend=TRUE,ncol=3, nrow=2, labels = c("A","B","C", "D", "E", "F"), hjust=c(-2))
+ggexport(plotlist = list(temp_plot), filename = "climatic_plot.pdf",  width=9, height=9)
+temp_plot
+```
+
+## Contextual
+
+
+```{r}
+
+mob_vars_full <- st_read("data/coefs.csv")
+#mob_vars <- mob_vars %>% 
+#  mutate(response = fct_reorder(variable, variable, min)) %>%   arrange(response)
+
+mob_vars_full$variable <- as.factor(mob_vars_full$variable)
+mob_vars_full$response <- as.factor(mob_vars_full$Response)
+mob_vars_full$country <- as.factor(mob_vars_full$country)
+
+mob_vars_full$coefficient <- as.numeric(mob_vars_full$coefficient)
+mob_vars_full$ci <- as.numeric(mob_vars_full$ci)
+
+mob_vars_full$pval[mob_vars_full$pval==""] <- NA
+mob_vars_full$pval <- as.factor(mob_vars_full$pval)
+
+
+color_fun <- function(data, variable) {
+ colfun_var <- colorRamp2(c(-5, 0, 5, 1000), c("#D7191C", "white", "#1A9641", "darkgrey")) #specifies colors for each value, minimum, median, and maximum
+ colfun_var(eval(substitute(data$variable))) #applies `colorRamp2` to get the specific color label 
+}
+
+```
+```{r}
+```
+
+
+
+```{r}
+           
+mob_vars <- filter(mob_vars_full, (variable == 'Pop. Dens.' | variable == 'HDI' | variable == 'Over 60'))
+
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+france_df <- filter(mob_vars, country=='France')
+
+
+p1_temp <- ggplot(france_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="France", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+
+india_df <- filter(mob_vars, country=='India')
+
+
+p2_temp <- ggplot(india_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="India", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+us_df <- filter(mob_vars, country=='United States')
+
+p3_temp <- ggplot(us_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="United States", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+turkey_df <- filter(mob_vars, country=='Turkey')
+
+p4_temp <-ggplot(turkey_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Turkey", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+nigeria_df <- filter(mob_vars, country=='Nigeria')
+
+p5_temp <- ggplot(nigeria_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Nigeria", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+brazil_df <- filter(mob_vars, country=='Brazil')
+
+p6_temp <- ggplot(brazil_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+    scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Brazil", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+```
+
+
+```{r}
+temp_plot <- ggarrange(p1_temp, p2_temp,p3_temp,p4_temp,p5_temp,p6_temp, common.legend=TRUE,ncol=3, nrow=2, labels = c("A","B","C", "D", "E", "F"), hjust=c(-2), legend="top")
+#ggexport(plotlist = list(temp_plot), filename = "socio_plot.pdf",  width=9, height=9)
+temp_plot
+```
+
+```{r}
+mob_vars <- filter(mob_vars_full, (variable == 'Coast' | variable == 'Elev > 1500'))
+
+mob_vars$response <- factor(mob_vars$response, levels=c('residence', 'workplace','transit','grocery_pharmacy','retail_recreation', 'parks'))
+
+france_df <- filter(mob_vars, country=='France')
+
+
+p1_temp <- ggplot(france_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="France", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+
+india_df <- filter(mob_vars, country=='India')
+
+
+p2_temp <- ggplot(india_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="India", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+us_df <- filter(mob_vars, country=='United States')
+
+p3_temp <- ggplot(us_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="United States", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+turkey_df <- filter(mob_vars, country=='Turkey')
+
+p4_temp <-ggplot(turkey_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Turkey", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+nigeria_df <- filter(mob_vars, country=='Nigeria')
+
+p5_temp <- ggplot(nigeria_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Nigeria", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+brazil_df <- filter(mob_vars, country=='Brazil')
+
+p6_temp <- ggplot(brazil_df %>% 
+         mutate(response = factor(response, levels = rev(levels(factor(response))))),
+       aes(x = coefficient, y = variable, color = response, group = response, alpha=pval)) +
+  geom_point(size = 1.4, position = pd) +
+  geom_errorbarh(aes(xmin = coefficient - ci, xmax = coefficient + ci),
+                 position = pd, height = 0) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  geom_hline(yintercept = (0:7) + 0.5) +
+  scale_alpha_discrete(range = c(1, 0.15)) +
+
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = guide_legend(reverse = TRUE)) +  # reverse legend order
+  labs(y = "Variable", x = "Coefficient", color = "Response", title="Brazil", alpha='p-value')  +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+```{r}
+temp_plot <- ggarrange(p1_temp, p2_temp,p3_temp,p4_temp,p5_temp,p6_temp, common.legend=TRUE,ncol=3, nrow=2 , labels = c("A","B","C", "D", "E", "F"), hjust=c(-2.5), legend="top")
+ggexport(plotlist = list(temp_plot), filename = "phys_plot.pdf",  width=9, height=9)
+temp_plot
+```
+
+
+
