@@ -19,7 +19,7 @@ The steps presented in the repository are as follows:
 
 References:
 
-> Yücel, S. G., Liang, Y., Wang, D. & Schwanen, T. (2025). Everyday adaptation to summer heatwaves: A global perspective.
+> Yücel, S. G., Liang, Y., Wang, D. & Schwanen, T. (2025). Adapting everyday activities to summer heatwaves: A multi-country analysis of mobile phone location data.
 
 > Hobday, A.J. et al. (2016), A hierarchical approach to defining marine heatwaves, Progress in Oceanography, 141, pp. 227-238. https://doi.org/10.1016/j.pocean.2015.12.014 
 
