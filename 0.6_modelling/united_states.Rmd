@@ -27,7 +27,7 @@ options(MLwiN_path="/Users/shivyucel/Documents/projects/DPhil/Code_Data/mlwin/ml
 ```{r}
 # v12 is full model variables
 #v17 is new demographic + popdens
-mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/united_states/THI_mobility_heat_w_vars_90_4SD_precip.csv")
+mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/united_states/THI_mobility_heat_w_vars_90_4SD_precip_Global2.csv")
 mob_vars$residential_difference <- as.numeric(mob_vars$residential_difference)
 mob_vars$workplaces_difference <- as.numeric(mob_vars$workplaces_difference)
 mob_vars$grocery_pharmacy_difference <- as.numeric(mob_vars$grocery_pharm_difference)
@@ -91,7 +91,7 @@ model_thi
 ```{r}
 x <- data.frame(model_thi@FP)
 
-write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_united_states_params_4SD_precip_sort_v1.csv')
+write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_united_states_params_4SD_precip_sort_v1_G2.csv')
 ```
 
 

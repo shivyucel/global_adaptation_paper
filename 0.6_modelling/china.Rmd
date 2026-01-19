@@ -32,7 +32,7 @@ options(MLwiN_path="/Users/shivyucel/Documents/projects/DPhil/Code_Data/mlwin/ml
 ```{r}
 # v12 is full model variables
 #v17 is new demographic + popdens
-thi_mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/china/THI_mobility_heat_w_vars_90_4SD.csv")
+thi_mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/paper2_repo/__clean/data/revisions/china_G2.csv")
 
 #set up dependent variables
 thi_mob_vars$mobility_diff_pct <- as.numeric(thi_mob_vars$mobility_diff_pct)
@@ -70,9 +70,7 @@ thi_mob_vars$heatwave_dur <- as.factor(thi_mob_vars$heatwave_dur)
 
 ```
 
-```{r}
-thi_mob_vars$mobility_diff_pct
-```
+
 
 ```{r}
 # Model 4: Add coast and elevation
@@ -102,7 +100,7 @@ model_thi
 ```{r}
 x <- data.frame(model_thi@FP)
 
-write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_china_params_4SD.csv')
+write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_china_params_4SD_G2.csv')
 ```
 
 

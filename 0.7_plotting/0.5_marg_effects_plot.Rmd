@@ -30,7 +30,7 @@ library("ggpubr")
 
 
 ```{r}
-data <- st_read('/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/results/THI_state_plots_CI_sorted.csv')
+data <- st_read('/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/results/THI_state_plots_CI_sorted_g2.csv')
 data$change <- as.numeric(data$change)
 data$temp <- as.numeric(data$temp)
 data$lower_ci <- as.numeric(data$lower_ci)
@@ -125,5 +125,5 @@ geom_hline(aes(yintercept=0),
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 ggarrange(p1, p2, p3, p4, p5, p6, common.legend = TRUE, labels = c("A", "B", "C", "D", "E", "F"))
-ggsave("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/results/plotting/thi_admo_plots_CI_sorted.pdf")
+ggsave("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/results/plotting/thi_admo_plots_CI_sorted_g2.pdf")
 ```

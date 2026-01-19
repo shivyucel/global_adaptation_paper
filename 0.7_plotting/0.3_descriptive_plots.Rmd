@@ -26,12 +26,14 @@ library(ggsci)
 library("ggpubr")
 library(plyr)
 ```
+
+
 ```{r}
 # v12 is full model variables
 #v17 is new demographic + popdens
 
 
-mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/THI_concat_mobility_heat_w_vars_90_4SD_precip.csv")
+mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/THI_concat_mobility_heat_w_vars_90_4SD_precip_g2.csv")
 
 #set up dependent variables
 mob_vars$residential_difference <- as.numeric(mob_vars$residential_difference)
@@ -146,7 +148,7 @@ elev <- ggplot(df.summary2, aes(adm0, thi_heat)) +
 
 combined <- ggarrange(intensity, duration, coast, elev, common.legend =FALSE, labels=c("A", "B", "C", "D"))
 
-ggsave('/Users/shivyucel/Documents/projects/DPhil/Code_Data/paper2_repo/__clean/0.6_modelling/figs/descriptives.pdf', combined, width=8, height=5)
+ggsave('/Users/shivyucel/Documents/projects/DPhil/Code_Data/paper2_repo/__clean/0.6_modelling/figs/descriptives_g2.pdf', combined, width=8, height=5)
 ```
 
 

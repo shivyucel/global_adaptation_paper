@@ -33,7 +33,7 @@ options(MLwiN_path="/Users/shivyucel/Documents/projects/DPhil/Code_Data/mlwin/ml
 ```{r}
 # v12 is full model variables
 #v17 is new demographic + popdens
-mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/turkey/THI_mobility_heat_w_vars_90_4SD_precip.csv")
+mob_vars <- st_read('/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/turkey/THI_mobility_heat_w_vars_90_4SD_precip_Global2.csv')
 
 #set up dependent variables
 mob_vars$residential_difference <- as.numeric(mob_vars$residential_difference)
@@ -63,7 +63,7 @@ mob_vars$stage_frac <- as.numeric(mob_vars$stage_frac)
 mob_vars$thi_heat <- as.numeric(mob_vars$thi_heat)
 mob_vars$thi_temp_centered <- mob_vars$thi_heat - mean(mob_vars$thi_heat)
 
-mob_vars$early_hw <- as.factor(mob_vars$early_hw)
+#mob_vars$early_hw <- as.factor(mob_vars$early_hw)
 
 mob_vars$temp_diff <- as.numeric(mob_vars$temp_diff)
 
@@ -110,9 +110,6 @@ model_4 <- runMLwiN(c(residential_difference, workplaces_difference, transit_dif
 model_4
 ```
 
-```{r}
-model_4
-```
 
 
 
@@ -124,7 +121,7 @@ model_4
 x <- data.frame(model_4@FP)
 
 
-write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_turkey_params_4SD_precip_sort_v1.csv')
+write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/THI_turkey_params_4SD_precip_sort_v1_G2.csv')
 ```
 
 

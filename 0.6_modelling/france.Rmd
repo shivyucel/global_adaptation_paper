@@ -32,7 +32,7 @@ options(MLwiN_path="/Users/shivyucel/Documents/projects/DPhil/Code_Data/mlwin/ml
 
 ```{r}
 
-mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/france/THI_mobility_heat_w_vars_90_4SD_precip.csv")
+mob_vars <- st_read("/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/paper2/france/THI_mobility_heat_w_vars_90_4SD_precip_Global2.csv")
 
 mob_vars$residential_difference <- as.numeric(mob_vars$residential_difference)
 mob_vars$workplaces_difference <- as.numeric(mob_vars$workplaces_difference)
@@ -105,7 +105,7 @@ model_6
 ```{r}
 x <- data.frame(model_6@FP)
 
-write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/thi_france_params_4SD_precip_sort_v1.csv')
+write.csv(x, file='/Users/shivyucel/Documents/projects/DPhil/Code_Data/data/regression/thi_france_params_4SD_precip_sort_v1_G2.csv')
 ```
 
 
