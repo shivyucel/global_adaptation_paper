@@ -1,6 +1,6 @@
 # Global analysis of everyday adaptation
 
-This GitHub repository contains code for (Yücel et al., 2025), examining everyday adaptation to heatwaves at an international scale.
+This GitHub repository contains code for (Yücel et al., 2026), examining everyday adaptation to heatwaves at an international scale.
 
 # Overview 
 The steps presented in the repository are as follows:
@@ -19,7 +19,7 @@ The steps presented in the repository are as follows:
 
 References:
 
-> Yücel, S. G., Liang, Y., Wang, D. & Schwanen, T. (2025). Adapting everyday activities to summer heatwaves: A multi-country analysis of mobile phone location data.
+> Yücel, S. G., Liang, Y., Wang, D. & Schwanen, T. (2026). Adapting everyday activities to summer heatwaves: a multi-country analysis of mobile phone location data. Environmental Research: Climate. 5, 025007 https://doi.org/10.1088/2752-5295/ae4cc2
 
 > Hobday, A.J. et al. (2016), A hierarchical approach to defining marine heatwaves, Progress in Oceanography, 141, pp. 227-238. https://doi.org/10.1016/j.pocean.2015.12.014 
 
